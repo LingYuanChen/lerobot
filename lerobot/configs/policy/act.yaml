@@ -12,8 +12,8 @@ override_dataset_stats:
 training:
   offline_steps: 100000
   online_steps: 0
-  eval_freq: 20000
-  save_freq: 20000
+  eval_freq: 10
+  save_freq: 10
   save_checkpoint: true
 
   batch_size: 8
@@ -27,8 +27,8 @@ training:
     action: "[i / ${fps} for i in range(${policy.chunk_size})]"
 
 eval:
-  n_episodes: 50
-  batch_size: 50
+  n_episodes: 1
+  batch_size: 1
 
 # See `configuration_act.py` for more details.
 policy:

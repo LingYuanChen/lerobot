@@ -77,7 +77,8 @@ from lerobot.common.utils.utils import (
     inside_slurm,
     set_global_seed,
 )
-
+import IPython
+e = IPython.embed
 
 def rollout(
     env: gym.vector.VectorEnv,
@@ -143,6 +144,7 @@ def rollout(
         disable=inside_slurm(),  # we dont want progress bar when we use slurm, since it clutters the logs
         leave=False,
     )
+
     while not np.all(done):
         # Numpy array to tensor and changing dictionary keys to LeRobot policy format.
         observation = preprocess_observation(observation)

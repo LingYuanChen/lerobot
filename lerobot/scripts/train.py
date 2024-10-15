@@ -49,7 +49,8 @@ from lerobot.common.utils.utils import (
     set_global_seed,
 )
 from lerobot.scripts.eval import eval_policy
-
+import IPython
+e = IPython.embed
 
 def make_optimizer_and_scheduler(cfg, policy):
     if cfg.policy.name == "act":

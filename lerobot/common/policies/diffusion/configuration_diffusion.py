@@ -103,13 +103,13 @@ class DiffusionConfig:
 
     input_shapes: dict[str, list[int]] = field(
         default_factory=lambda: {
-            "observation.image": [3, 96, 96],
-            "observation.state": [2],
+            "observation.image": [3, 480, 640],
+            "observation.state": [14],
         }
     )
     output_shapes: dict[str, list[int]] = field(
         default_factory=lambda: {
-            "action": [2],
+            "action": [14],
         }
     )
 
