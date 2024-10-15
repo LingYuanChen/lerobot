@@ -1,34 +1,27 @@
 # @package _global_
 
-# Defaults for training for the PushT dataset as per https://github.com/real-stanford/diffusion_policy.
+# Defaults for training for the pusht_keypoints dataset.
+
+
+# Note: The original work trains keypoints-only with conditioning via inpainting. Here, we encode the
+# observation along with the agent position and use the encoding as global conditioning for the denoising
+# U-Net.
+
 # Note: We do not track EMA model weights as we discovered it does not improve the results. See
 #       https://github.com/huggingface/lerobot/pull/134 for more details.
 
 seed: 100000
-dataset_repo_id: lerobot/pusht
-
-override_dataset_stats:
-  # TODO(rcadene, alexander-soare): should we remove image stats as well? do we use a pretrained vision model?
-  observation.image:
-    mean: [[[0.5]], [[0.5]], [[0.5]]]  # (c,1,1)
-    std: [[[0.5]], [[0.5]], [[0.5]]]  # (c,1,1)
-  # TODO(rcadene, alexander-soare): we override state and action stats to use the same as the pretrained model
-  # from the original codebase, but we should remove these and train our own pretrained model
-  observation.state:
-    min: [13.456424, 32.938293]
-    max: [496.14618, 510.9579]
-  action:
-    min: [12.0, 25.0]
-    max: [511.0, 511.0]
+# dataset_repo_id: alanchenly/aloha_sim_transfer_cube_scripted_multicam
 
 training:
-  offline_steps: 200000
+  offline_steps: 400000
   online_steps: 0
-  eval_freq: 25000
-  save_freq: 25000
+  eval_freq: 1000
+  save_freq: 1000
+  log_freq: 100
   save_checkpoint: true
 
-  batch_size: 64
+  batch_size: 32
   grad_clip_norm: 10
   lr: 1.0e-4
   lr_scheduler: cosine
@@ -39,7 +32,10 @@ training:
   online_steps_between_rollouts: 1
 
   delta_timestamps:
-    observation.image: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
+    observation.images.top: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
+    observation.images.angle: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
+    observation.images.left_wrist: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
+    observation.images.right_wrist: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     observation.state: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     action: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1 - ${policy.n_obs_steps} + ${policy.horizon})]"
 
@@ -48,8 +44,8 @@ training:
   drop_n_last_frames: 7  # ${policy.horizon} - ${policy.n_action_steps} - ${policy.n_obs_steps} + 1
 
 eval:
-  n_episodes: 50
-  batch_size: 50
+  n_episodes: 1
+  batch_size: 1
 
 policy:
   name: diffusion
@@ -61,34 +57,40 @@ policy:
 
   input_shapes:
     # TODO(rcadene, alexander-soare): add variables for height and width from the dataset/env?
-    observation.image: [3, 480, 640]
+    observation.images.top: [3, 480, 640]
+    observation.images.angle: [3, 480, 640]
+    observation.images.left_wrist: [3, 480, 640]
+    observation.images.right_wrist: [3, 480, 640]
     observation.state: ["${env.state_dim}"]
   output_shapes:
     action: ["${env.action_dim}"]
 
   # Normalization / Unnormalization
   input_normalization_modes:
-    observation.image: mean_std
-    observation.state: min_max
+    observation.images.top: mean_std
+    observation.images.angle: mean_std
+    observation.images.left_wrist: mean_std
+    observation.images.right_wrist: mean_std
+    observation.state: mean_std
   output_normalization_modes:
-    action: min_max
+    action: mean_std
 
   # Architecture / modeling.
   # Vision backbone.
   vision_backbone: resnet18
-  crop_shape: [84, 84]
+  crop_shape: [432, 576]
   crop_is_random: True
   pretrained_backbone_weights: null
   use_group_norm: True
   spatial_softmax_num_keypoints: 32
   # Unet.
-  down_dims: [512, 1024, 2048]
+  down_dims: [256, 512, 1024]
   kernel_size: 5
   n_groups: 8
   diffusion_step_embed_dim: 128
   use_film_scale_modulation: True
   # Noise scheduler.
-  noise_scheduler_type: DDPM
+  noise_scheduler_type: DDIM
   num_train_timesteps: 100
   beta_schedule: squaredcos_cap_v2
   beta_start: 0.0001
@@ -98,7 +100,7 @@ policy:
   clip_sample_range: 1.0
 
   # Inference
-  num_inference_steps: null  # if not provided, defaults to `num_train_timesteps`
+  num_inference_steps: 10  # if not provided, defaults to `num_train_timesteps`
 
   # Loss computation
   do_mask_loss_for_padding: false
